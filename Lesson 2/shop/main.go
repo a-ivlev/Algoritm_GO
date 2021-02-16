@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"shop/notification"
 	"shop/repository"
 	"shop/service"
-
-	"github.com/gorilla/mux"
+	"strings"
 )
 
 func main() {
@@ -23,12 +23,14 @@ func main() {
 
 	flag.Parse()
 
+	host := "smtp." + strings.Split(loginEmail, "@")[1]
+
 	notif, err := notification.NewTelegramBot(tokenStr, 425969694)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	notifEmail, err := notification.NewEmail(loginEmail, passwordEmail)
+	notifEmail, err := notification.NewEmail(loginEmail, passwordEmail, host)
 	if err != nil {
 		log.Fatal(err)
 	}

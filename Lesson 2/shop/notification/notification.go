@@ -2,10 +2,9 @@ package notification
 
 import (
 	"fmt"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"net/smtp"
 	"shop/models"
-
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type Notification interface {
@@ -43,13 +42,14 @@ type SendEmailNotif interface {
 }
 
 type sendEmail struct {
+	host string
 	login string
 	password string
 }
 
 func (m *sendEmail) SendEmailOrderNotification(order *models.Order) error {
 	// server we are authorized to send email through
-	host := "smtp.mail.ru"
+	host := m.host
 	// user we are authorizing as
 	from := m.login
 	// use we are sending email to
@@ -60,8 +60,8 @@ func (m *sendEmail) SendEmailOrderNotification(order *models.Order) error {
 	// NOTE: Using the backtick here ` works like a heredoc, which is why all the
 	// rest of the lines are forced to the beginning of the line, otherwise the
 	// formatting is wrong for the RFC 822 style
-	message := `To: "Some User" <someuser@example.com>
-From: "Other User" <otheruser@example.com>
+	message := `To: "Some User" <` + order.CustomerEmail + `>
+From: "Other User" <` + m.login + `>
 Subject: Testing Email From Go!!
 
 This is the message we are sending. That's it!
@@ -74,8 +74,9 @@ This is the message we are sending. That's it!
 	return nil
 }
 
-func NewEmail(loginEmail string, passwordEmail string) (SendEmailNotif, error) {
+func NewEmail(host string, loginEmail string, passwordEmail string) (SendEmailNotif, error) {
 	return &sendEmail{
+		host: host,
 		login: loginEmail,
 		password: passwordEmail,
 	}, nil
