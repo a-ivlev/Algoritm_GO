@@ -31,8 +31,6 @@ type itemsTable struct {
 	maxID int32
 }
 
-var timeNow = time.Now().UTC()
-
 func NewMapDB() Repository {
 	return &mapDB{
 		itemsTable: &itemsTable{
@@ -44,6 +42,8 @@ func NewMapDB() Repository {
 
 func (m *mapDB) CreateItem(item *models.Item) (*models.Item, error) {
 	m.itemsTable.maxID++
+
+	timeNow := time.Now().UTC()
 
 	newItem := &models.Item{
 		ID:        m.itemsTable.maxID,
