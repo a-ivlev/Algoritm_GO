@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -13,8 +12,8 @@ import (
 )
 
 type Job struct {
-	req string
-	payload []byte
+	req http.Request
+	mu *sync.RWMutex
 }
 
 type Worker struct {
@@ -23,9 +22,13 @@ type Worker struct {
 	jobChan <-chan *Job
 }
 
+var totalDuration time.Duration
+var count, countBad int
+var mutex sync.RWMutex
+
 func main() {
 	var url, reqMetod string
-	var numThreads, numRequest, count, countBad int
+	var numThreads, numRequest  int
 
 	flag.StringVar(&reqMetod, "m", "GET", "http-method")
 	flag.StringVar(&url, "u", "http://localhost:8081/items", "http address")
@@ -35,10 +38,7 @@ func main() {
 	flag.Parse()
 
 	switch reqMetod {
-	case "GET":
-	case "POST":
-	case "PUT":
-	case "DELETE":
+	case "GET", "POST", "PUT", "DELETE":
 	default:
 		fmt.Println("Введён не корректный http-method")
 		os.Exit(1)
@@ -52,8 +52,6 @@ func main() {
 	wg := &sync.WaitGroup{}
 	jobChan := make(chan *Job)
 
-	var totalDuration time.Duration
-
 	if numThreads > numRequest {
 		numThreads = numRequest
 	}
@@ -64,25 +62,9 @@ func main() {
 	}
 
 	for j := 0; j < numRequest; j++{
-		startReq := time.Now()
-		//resp, err := http.Get("http://localhost:8081/items")
 		req, _ := http.NewRequest(reqMetod, "http://localhost:8081/items", nil)
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-		elapsed := time.Since(startReq)*time.Nanosecond
-		io.Copy(ioutil.Discard, resp.Body)
-		resp.Body.Close()
-		if resp.StatusCode != 200 {
-			countBad++
-		}
-		totalDuration += elapsed
-		count++
-		text := fmt.Sprintf("\nУспешных запросов %d, время отклика на запрос %v, Статус код = %s\n", count-countBad, elapsed*time.Nanosecond, resp.Status)
 		jobChan <- &Job{
-			req: "resp.Body",
-			payload: []byte(text),
+			req: *req,
 		}
 	}
 	close(jobChan)
@@ -94,12 +76,25 @@ func main() {
 func (w *Worker) Handle() {
 	defer w.wg.Done()
 	for job := range w.jobChan {
-		log.Printf("worker %d processing job with payload %s", w.num, string(job.payload))
+		startReq := time.Now()
+		resp, _ := http.DefaultClient.Do(&job.req)
+		elapsed := time.Since(startReq)*time.Nanosecond
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != 200 {
+			mutex.Lock()
+			countBad++
+			mutex.Unlock()
+		}
+		mutex.Lock()
+		totalDuration += elapsed
+		count++
+		mutex.Unlock()
+		fmt.Printf("\nВремя отклика на запрос %v, Статус код = %s\n", elapsed*time.Nanosecond, resp.Status)
 	}
 }
 
 func NewWorker(num int, wg *sync.WaitGroup, jobChan <-chan *Job) *Worker {
-	fmt.Printf("NewWorker num %d \n", num)
 	return &Worker{
 		wg:      wg,
 		num:     num,
