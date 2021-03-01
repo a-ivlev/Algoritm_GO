@@ -1,63 +1,62 @@
 // LRU (Least Recently Used) — это алгоритм, при котором вытесняются значения, которые дольше всего не запрашивались.
-// для решения данной задачи я использовал карту. В качестве ключа я использовал "бит времени",
-// число которое позволяет определить какая карта добавлена последней и к какой карте был последний доступ.
+// для решения данной задачи я использовал карту. В качестве ключа я использовал то что собираемся кешировать,
+// а в качестве значения я использовал "бит времени", число которое позволяет определить какая карта была давно добавлена
+// или какая карта давно не запрашивалась.
 package main
 
 import "fmt"
 
-var lru = make(map[int]string)
+var lru = make(map[string]int)
 var maxLen = 3
-var max, min int
-
+var count int = 1
+var del string
 
 func Add(data string) {
-		lru[max] = data
-		max++
+		lru[data] = count
+		count++
 	if  len(lru) > maxLen{
-		delete(lru, min)
-		min = max
-		for key, _ := range lru {
-			if key < min {
-				min = key
+		min := count
+		for key, value := range lru {
+			if value < min {
+				min = value
+				del = key
 			}
 		}
+		delete(lru, del)
 	}
 }
 
-func Get(index int)  string {
-	lru[max] = lru[index]
-	delete(lru, index)
-	min = max
-	max++
-	for key, _ := range lru {
-		if key < min {
-			min = key
-		}
+func Get(data string)  (string, int) {
+	if lru[data] == 0 {
+		return "Элемент не найден", 0
 	}
-	return lru[max]
+	lru[data] = count
+	count++
+	return data, lru[data]
 }
 
 func main()  {
 	Add("A")
 	Add("B")
 	Add("C")
-	fmt.Println("Пусть кеш расчитан на 3 элемента, а мы добавляем 4.")
+	fmt.Println(lru)
+	fmt.Println("Пусть кеш расчитан на 3 элемента, а мы добавляем 4 элемент \"D\".")
 	Add("D")
-	fmt.Println("Смотрим что получилось.")
-	fmt.Println(lru)
-	fmt.Println(min)
-	fmt.Println(max)
-	fmt.Println("Делаем запрос к элементу с ключём 2.")
-	Get(2)
-	fmt.Println("Смотрим что получилось.")
-	fmt.Println(lru)
-	fmt.Println(min)
-	fmt.Println(max)
-	fmt.Println("Добавляем новый элемент.")
+	fmt.Println("Выводим на экран карту.\n", lru)
+	fmt.Println(`Бит времени по ключу "A"`, lru["A"])
+	fmt.Println(`Бит времени по ключу "B"`, lru["B"])
+	fmt.Println(`Делаем запрос к элементу с ключём "B".`)
+	fmt.Println(Get("B"))
+	fmt.Println("Выводим на экран карту.\n", lru)
+	fmt.Println("Добавляем новый элемент. \"F\"")
 	Add("F")
-	fmt.Println("Делаем запрос к элементу с ключём 3.")
-	Get(3)
-	fmt.Println(lru)
-	fmt.Println(min)
-	fmt.Println(max)
+	fmt.Println("Выводим на экран карту.\n", lru)
+	fmt.Println("Делаем запрос к элементу с ключём \"C\".")
+	fmt.Println(Get("C"))
+	fmt.Println("Делаем запрос к элементу с ключём \"W\".")
+	fmt.Println(Get("W"))
+	fmt.Println("Выводим на экран карту.\n", lru)
+	fmt.Println("Добавляем новый элемент. \"W\"")
+	Add("W")
+	fmt.Println("Выводим на экран карту.\n", lru)
 }
