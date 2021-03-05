@@ -1,0 +1,50 @@
+syntax = "proto3";
+package proto;
+
+service ItemRepository {
+  rpc CreateItem(CreateItemRequest) returns (Item) {}
+  rpc UpdateItem(UpdateItemRequest) returns (Item) {}
+  rpc DeleteItem(DeleteItemRequest) returns (Message) {}
+  rpc GetItem(GetItemRequest) returns (Item) {}
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse) {}
+}
+
+message Item {
+  int32 id = 1;
+  string name = 2;
+  int64 price = 3;
+}
+
+message CreateItemRequest {
+  string name = 1;
+  int64 price = 2;
+}
+
+message UpdateItemRequest {
+  int32 id = 1;
+  string name = 2;
+  int64 price = 3;
+}
+
+message DeleteItemRequest {
+  int32 id = 1;
+}
+
+message GetItemRequest {
+  int32 id = 1;
+}
+
+message Message {
+  string text = 1;
+}
+
+message ListItemsRequest {
+  int64 price_left = 1;
+  int64 price_right = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListItemsResponse {
+  repeated Item items = 1;
+}
